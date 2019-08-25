@@ -87,11 +87,7 @@ class _HomepageState extends State<Homepage> {
                   ),
                   trailing: IconButton(
                     icon: Icon(Icons.delete),
-                    onPressed: () async { 
-                      if (await AlertHelper.showConfirmDialog(context, "Are you sure you want to delete this container")) {
-                        deleteContainer(context, container.id);
-                      }
-                    },
+                    onPressed: () => deleteContainer(context, container.id)
                   ),
                   onTap: () {
                     Navigator.of(context).pushNamed(
@@ -137,11 +133,16 @@ class _HomepageState extends State<Homepage> {
   }
 
   deleteContainer(BuildContext context, int id) async {
-    if (await containerService.deleteContainer(id)) {
-      await AlertHelper.showSuccessDialog(context, "Container deleted successfully");
-    }
-    else {
-      await AlertHelper.showErrorDialog(context, "An error occurred. Please try again");
+    if (await AlertHelper.showConfirmDialog(context, "Are you sure you want to delete this container")) {
+      if (await containerService.deleteContainer(id)) {
+        await AlertHelper.showSuccessDialog(
+            context, "Container deleted successfully");
+        setState(() {}); //Force refresh
+      }
+      else {
+        await AlertHelper.showErrorDialog(
+            context, "An error occurred. Please try again");
+      }
     }
   }
 

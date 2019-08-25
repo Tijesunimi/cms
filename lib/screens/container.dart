@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:cms/routes.dart';
+import 'package:cms/helpers/alert_helper.dart';
+
+import 'package:cms/services/container.dart';
 
 import 'package:cms/models/container.dart';
 
@@ -26,19 +29,36 @@ class _ContainerDetailState extends State<ContainerDetail> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Container ${shippingContainer.containerNumber}"),
+        actions: <Widget>[
+          PopupMenuButton(
+            onSelected: (PopupMenuOption option) {
+              switch(option) {
+                case PopupMenuOption.Edit:
+                  editContainer();
+                  break;
+                case PopupMenuOption.Delete:
+                  deleteContainer(context);
+                  break;
+              }
+            },
+            itemBuilder: (context) => <PopupMenuEntry<PopupMenuOption>>[
+              const PopupMenuItem<PopupMenuOption>(
+                value: PopupMenuOption.Edit,
+                child: Text('Edit'),
+              ),
+              const PopupMenuItem<PopupMenuOption>(
+                value: PopupMenuOption.Delete,
+                child: Text('Delete'),
+              )
+            ],
+          )
+        ],
       ),
       floatingActionButton: FloatingActionButtonWithText(
         text: 'Edit',
         icon: Icons.edit,
         onPressed: () async {
-          final updatedContainer = await Navigator.of(context).pushNamed(Routes.CONTAINER_FORM, arguments: {
-            RouteContainerFormArguments.SHIPPING_CONTAINER: shippingContainer
-          });
 
-          if (updatedContainer != null)
-            setState(() {
-              shippingContainer = updatedContainer;
-            });
         },
       ),
       body: ListView(
@@ -98,8 +118,39 @@ class _ContainerDetailState extends State<ContainerDetail> {
     return details;
   }
 
+  editContainer() async {
+    final updatedContainer = await Navigator.of(context).pushNamed(Routes.CONTAINER_FORM, arguments: {
+      RouteContainerFormArguments.SHIPPING_CONTAINER: shippingContainer
+    });
+
+    if (updatedContainer != null)
+      setState(() {
+        shippingContainer = updatedContainer;
+      });
+  }
+
+  deleteContainer(BuildContext context) async {
+    if (await AlertHelper.showConfirmDialog(context, "Are you sure you want to delete this container")) {
+      var containerService = ContainerService();
+      if (await containerService.deleteContainer(shippingContainer.id)) {
+        await AlertHelper.showSuccessDialog(
+            context, "Container deleted successfully");
+        Navigator.of(context).pop();
+      }
+      else {
+        await AlertHelper.showErrorDialog(
+            context, "An error occurred. Please try again");
+      }
+    }
+  }
+
   Widget getSingleTile(IconData icon, String title, String data) {
     return ListTile(
         leading: Icon(icon), title: Text(data), subtitle: Text(title));
   }
+}
+
+enum PopupMenuOption {
+  Edit,
+  Delete
 }
