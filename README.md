@@ -1,2 +1,2 @@
-# cms
+# CMS
 Simple container management system
