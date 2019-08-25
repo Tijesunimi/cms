@@ -26,6 +26,9 @@ dependencies:
   sqflite: ^1.1.6
   path_provider: ^1.2.0
   dbcrypt: ^1.0.0
+  autocomplete_textfield: ^1.7.3
+  intl: ^0.15.8
+  localstorage: ^2.0.0
 
 dev_dependencies:
   flutter_test:

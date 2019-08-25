@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'models/auth.dart';
+import 'models/container.dart';
 
 class DatabaseHelper {
   static final _databaseName = "cms.db";
@@ -13,6 +14,20 @@ class DatabaseHelper {
   static final authTable = "auth";
   static final authColumnUsername = "username";
   static final authColumnPassword = "password";
+
+  static final containerTable = "containers";
+  static final containerColumnId = "id";
+  static final containerColumnContainerNo = "container_no";
+  static final containerColumnShippingLine = "shipping_line";
+  static final containerColumnExporter = "exporter";
+  static final containerColumnImporter = "importer";
+  static final containerColumnSize = "size";
+  static final containerColumnProduce = "produce";
+  static final containerColumnDestination = "destination";
+  static final containerColumnShipmentPort = "shipment_port";
+  static final containerColumnShipmentDate = "date_shipment";
+  static final containerColumnFumigationDate = "date_fumigation";
+  static final containerColumnDepartureDate = "date_departure";
 
   DatabaseHelper._initializeHelper();
 
@@ -40,6 +55,23 @@ class DatabaseHelper {
         $authColumnPassword TEXT
       ) 
       ''');
+    await db.execute('''
+      CREATE TABLE $containerTable (
+        $containerColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
+        $containerColumnContainerNo TEXT,
+        $containerColumnShippingLine TEXT,
+        $containerColumnSize INTEGER,
+        $containerColumnExporter TEXT,
+        $containerColumnImporter TEXT,
+        $containerColumnProduce TEXT,
+        $containerColumnDestination TEXT,
+        $containerColumnShipmentPort TEXT,
+        $containerColumnDepartureDate TEXT,
+        $containerColumnFumigationDate TEXT,
+        $containerColumnShipmentDate TEXT
+      ) 
+      ''');
+
     //Seed db
     var defaultUser = AuthUser('admin');
     defaultUser.password = '@dmin011';
@@ -58,5 +90,32 @@ class DatabaseHelper {
       return AuthUser.fromJson(user.first);
     else
       return null;
+  }
+
+  Future<List<ShippingContainer>> fetchContainers() async {
+    Database db = await instance.database;
+    var response = await db.query(containerTable);
+    return response.isNotEmpty ? response.map((c) => ShippingContainer.fromJson(c)).toList() : [];
+  }
+
+  Future<ShippingContainer> fetchContainer(int id) async {
+    Database db = await instance.database;
+    var response = await db.query(containerTable, where: "$containerColumnId = $id");
+    return response.isNotEmpty ? ShippingContainer.fromJson(response.first) : null;
+  }
+
+  Future<int> insertContainer(ShippingContainer container) async {
+    Database db = await instance.database;
+    return await db.insert(containerTable, container.toJson());
+  }
+
+  Future<int> updateContainer(ShippingContainer container) async {
+    Database db = await instance.database;
+    return await db.update(containerTable, container.toJson(), where: "$containerColumnId = ${container.id}");
+  }
+
+  Future<int> deleteContainer(int id) async {
+    Database db = await instance.database;
+    return await db.delete(containerTable, where: "$containerColumnId = $id");
   }
 }

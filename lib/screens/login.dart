@@ -6,6 +6,7 @@ import 'package:cms/elements/round_text_form_field.dart';
 import 'package:cms/elements/primary_button.dart';
 
 import 'package:cms/routes.dart';
+import 'package:cms/helpers/alert_helper.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -41,7 +42,10 @@ class _LoginPageState extends State<LoginPage> {
             children: <Widget>[
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Icon(Icons.folder, size: 80.0),
+                child: Icon(Icons.folder,
+                  size: 80.0,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
               Text(
                 'Container Management System',
@@ -55,11 +59,13 @@ class _LoginPageState extends State<LoginPage> {
               RoundTextFormField(
                 controller: usernameController,
                 labelText: 'Username',
+                icon: Icons.account_circle
               ),
               RoundTextFormField(
                 controller: passwordController,
                 labelText: 'Password',
                 obscureText: true,
+                icon: Icons.lock
               ),
               PrimaryButton(
                 label: 'Submit',
@@ -83,33 +89,11 @@ class _LoginPageState extends State<LoginPage> {
 
       var authService = AuthService();
       if (await authService.isValidUser(usernameController.text, passwordController.text)) {
+        await AlertHelper.showSuccessDialog(context, "Login successful");
         Navigator.of(context).pushReplacementNamed(Routes.HOME);
       }
       else {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Icon(
-                Icons.error,
-                size: 80.0,
-                color: Colors.red,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0)
-              ),
-              content: Text("Invalid username or password"),
-              actions: <Widget>[
-                new FlatButton(
-                  child: new Text("Try again"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
+        await AlertHelper.showErrorDialog(context, "Invalid username or password");
       }
     }
 

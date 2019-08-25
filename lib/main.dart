@@ -5,6 +5,8 @@ import 'routes.dart';
 
 import 'screens/login.dart';
 import 'screens/home.dart';
+import 'screens/container_form.dart';
+import 'screens/container.dart';
 
 import 'services/auth.dart';
 
@@ -29,9 +31,31 @@ class CMS extends StatelessWidget {
     // TODO: implement build
     return MaterialApp(
       title: "Container Management System",
-      routes: {
-        Routes.HOME: (context) => Homepage(),
-        Routes.LOGIN: (context) => LoginPage()
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case Routes.HOME:
+            return MaterialPageRoute(builder: (_) => Homepage());
+          case Routes.LOGIN:
+            return MaterialPageRoute(builder: (_) => LoginPage());
+          case Routes.CONTAINER_FORM:
+            var shippingContainer;
+            if (settings.arguments != null) {
+              var arguments = settings.arguments as Map<String, dynamic>;
+              shippingContainer = arguments[RouteContainerFormArguments.SHIPPING_CONTAINER];
+            }
+            return MaterialPageRoute(builder: (_) => ContainerForm(
+              shippingContainer: shippingContainer,
+            ));
+          case Routes.CONTAINER_DETAIL:
+            var shippingContainer;
+            if (settings.arguments != null) {
+              var arguments = settings.arguments as Map<String, dynamic>;
+              shippingContainer = arguments[RouteContainerDetailArguments.SHIPPING_CONTAINER];
+            }
+            return MaterialPageRoute(builder: (_) => ContainerDetail(
+              shippingContainer: shippingContainer,
+            ));
+        }
       },
       home: isAuthenticated ? Homepage() : LoginPage(),
     );
