@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class ShippingContainer {
   final int id;
   final String containerNumber;
@@ -27,6 +29,7 @@ class ShippingContainer {
   });
 
   factory ShippingContainer.fromJson(Map<String, dynamic> json) {
+    final dateFormatter = new DateFormat('yyyy-MM-dd');
     return ShippingContainer(
       id: json['id'],
       containerNumber: json['container_no'],
@@ -37,13 +40,14 @@ class ShippingContainer {
       produce: json['produce'],
       destination: json['destination'],
       shipmentPort: json['shipment_port'],
-      dateOfShipment: json['date_shipment'] == null ? null : DateTime.tryParse(json['date_shipment']),
-      dateOfFumigation: json['date_fumigation'] == null ? null : DateTime.tryParse(json['date_fumigation']),
-      dateOfDeparture: json['date_departure'] == null ? null : DateTime.tryParse(json['date_departure'])
+      dateOfShipment: json['date_shipment'] == null ? null : dateFormatter.parse(json['date_shipment']),
+      dateOfFumigation: json['date_fumigation'] == null ? null : dateFormatter.parse(json['date_fumigation']),
+      dateOfDeparture: json['date_departure'] == null ? null : dateFormatter.parse(json['date_departure'])
     );
   }
 
   Map<String, dynamic> toJson() {
+    final dateFormatter = new DateFormat('yyyy-MM-dd');
     return {
       'id': this.id,
       'container_no': this.containerNumber,
@@ -54,9 +58,9 @@ class ShippingContainer {
       'produce': this.produce,
       'destination': this.destination,
       'shipment_port': this.shipmentPort,
-      'date_shipment': dateOfShipment == null ? null : this.dateOfShipment.toString(),
-      'date_fumigation': dateOfFumigation == null ? null : this.dateOfFumigation.toString(),
-      'date_departure': dateOfDeparture == null ? null : this.dateOfDeparture.toString()
+      'date_shipment': dateOfShipment == null ? null : dateFormatter.format(this.dateOfShipment),
+      'date_fumigation': dateOfFumigation == null ? null : dateFormatter.format(this.dateOfFumigation),
+      'date_departure': dateOfDeparture == null ? null : dateFormatter.format(this.dateOfDeparture)
     };
   }
 }

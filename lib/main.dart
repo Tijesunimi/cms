@@ -6,6 +6,7 @@ import 'routes.dart';
 import 'screens/login.dart';
 import 'screens/home.dart';
 import 'screens/container_form.dart';
+import 'screens/container_filter.dart';
 import 'screens/container.dart';
 
 import 'services/auth.dart';
@@ -54,6 +55,15 @@ class CMS extends StatelessWidget {
             }
             return MaterialPageRoute(builder: (_) => ContainerDetail(
               shippingContainer: shippingContainer,
+            ));
+          case Routes.CONTAINER_FILTER:
+            var previousFilter;
+            if (settings.arguments != null) {
+              var arguments = settings.arguments as Map<String, dynamic>;
+              previousFilter = arguments[RouteContainerFilterArguments.SHIPPING_CONTAINER_FILTER];
+            }
+            return MaterialPageRoute(builder: (_) => ContainerFilter(
+              previousFilter: previousFilter,
             ));
         }
       },

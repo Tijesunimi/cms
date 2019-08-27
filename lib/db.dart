@@ -98,6 +98,12 @@ class DatabaseHelper {
     return response.isNotEmpty ? response.map((c) => ShippingContainer.fromJson(c)).toList() : [];
   }
 
+  Future<List<ShippingContainer>> fetchContainersUsingFilterQuery(String query) async {
+    Database db = await instance.database;
+    var response = await db.rawQuery("SELECT * FROM $containerTable $query");
+    return response.isNotEmpty ? response.map((c) => ShippingContainer.fromJson(c)).toList() : [];
+  }
+
   Future<ShippingContainer> fetchContainer(int id) async {
     Database db = await instance.database;
     var response = await db.query(containerTable, where: "$containerColumnId = $id");

@@ -57,9 +57,7 @@ class _ContainerDetailState extends State<ContainerDetail> {
       floatingActionButton: FloatingActionButtonWithText(
         text: 'Edit',
         icon: Icons.edit,
-        onPressed: () async {
-
-        },
+        onPressed: editContainer,
       ),
       body: ListView(
         children: buildContainerDetails(),
@@ -79,6 +77,10 @@ class _ContainerDetailState extends State<ContainerDetail> {
       details.add(getSingleTile(Icons.shopping_cart, 'Shipping Line',
           shippingContainer.shippingLine));
 
+    if (shippingContainer.produce.isNotEmpty)
+      details.add(
+          getSingleTile(Icons.folder, 'Produce', shippingContainer.produce));
+
     if (shippingContainer.exporter.isNotEmpty)
       details.add(
           getSingleTile(Icons.explore, 'Exporter', shippingContainer.exporter));
@@ -90,10 +92,6 @@ class _ContainerDetailState extends State<ContainerDetail> {
     if (shippingContainer.size != null)
       details.add(getSingleTile(
           Icons.format_size, 'Size', shippingContainer.size.toString()));
-
-    if (shippingContainer.produce.isNotEmpty)
-      details.add(
-          getSingleTile(Icons.folder, 'Produce', shippingContainer.produce));
 
     if (shippingContainer.dateOfShipment != null)
       details.add(getSingleTile(Icons.calendar_today, 'Date of Shipment',

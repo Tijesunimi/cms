@@ -116,6 +116,12 @@ class _ContainerFormState extends State<ContainerForm> {
                       autoCompleteItems: shippingLineAutoCompleteItems,
                     ),
                     RoundAutocompleteTextFormField(
+                      labelText: 'Produce',
+                      icon: Icons.folder,
+                      controller: produceController,
+                      autoCompleteItems: produceAutoCompleteItems,
+                    ),
+                    RoundAutocompleteTextFormField(
                       labelText: 'Exporter',
                       icon: Icons.explore,
                       controller: exporterController,
@@ -132,12 +138,6 @@ class _ContainerFormState extends State<ContainerForm> {
                       icon: Icons.format_size,
                       controller: sizeController,
                       autoCompleteItems: sizeAutoCompleteItems,
-                    ),
-                    RoundAutocompleteTextFormField(
-                      labelText: 'Produce',
-                      icon: Icons.folder,
-                      controller: produceController,
-                      autoCompleteItems: produceAutoCompleteItems,
                     ),
                     InkWell(
                       onTap: () async {
