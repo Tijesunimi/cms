@@ -1,4 +1,5 @@
-import 'package:dbcrypt/dbcrypt.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class AuthUser {
   final String username;
@@ -13,7 +14,7 @@ class AuthUser {
   }
 
   set password(String password) {
-    _password = DBCrypt().hashpw(password, DBCrypt().gensalt());
+    this._password = md5.convert(utf8.encode(password)).toString();
   }
 
   Map<String, dynamic> toJson() {
@@ -24,6 +25,7 @@ class AuthUser {
   }
 
   bool isPasswordEqual(String password) {
-    return DBCrypt().checkpw(password, this._password);
+    var hashedPassword = md5.convert(utf8.encode(password)).toString();
+    return hashedPassword == this._password;
   }
 }

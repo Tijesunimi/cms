@@ -43,8 +43,6 @@ class _HomepageState extends State<Homepage> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Refreshing');
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Container Management System'),
@@ -125,16 +123,11 @@ class _HomepageState extends State<Homepage> {
           fetchContainerData()
         ]),
         builder: (context, snapshot) {
-          debugPrint('Entered future builder');
           if (snapshot.hasData) {
-            print(snapshot.data);
             var snapshotContainers = snapshot.data[1];
             if (snapshotContainers.length > 0) {
-              debugPrint("Entered future result");
-
               //Store items to be used for auto complete and search in local storage
               if (shouldRefreshDataFromDb) {
-                debugPrint('Entered auto complete');
                 var shippingLineAutoCompleteItems = List<String>();
                 var exporterAutoCompleteItems = List<String>();
                 var importerAutoCompleteItems = List<String>();
@@ -144,13 +137,11 @@ class _HomepageState extends State<Homepage> {
                 var destinationAutoCompleteItems = List<String>();
 
                 snapshotContainers.forEach((container) {
-                  print(container.shippingLine);
                   //Sync autocomplete items
                   if (container.shippingLine.isNotEmpty &&
                       !shippingLineAutoCompleteItems
                           .contains(container.shippingLine))
                     shippingLineAutoCompleteItems.add(container.shippingLine);
-                  print(shippingLineAutoCompleteItems);
 
                   if (container.exporter.isNotEmpty &&
                       !exporterAutoCompleteItems.contains(container.exporter))
@@ -181,7 +172,6 @@ class _HomepageState extends State<Homepage> {
                 });
 
                 //Update localStorage
-                print(shippingLineAutoCompleteItems);
                 localStorage.setItem(
                     'shippingLine', shippingLineAutoCompleteItems);
                 localStorage.setItem('exporter', exporterAutoCompleteItems);
@@ -227,7 +217,6 @@ class _HomepageState extends State<Homepage> {
                         DataColumn(
                           label: Text("CONTAINER NO"),
                           onSort: (int columnIndex, bool ascending) {
-                            debugPrint("Is Ascending: $ascending");
                             containerDataSource._sort<String>(
                                 (ShippingContainer d) => d.containerNumber,
                                 ascending);
@@ -359,7 +348,6 @@ class _HomepageState extends State<Homepage> {
               );
             }
           } else if (snapshot.hasError) {
-            print(snapshot.error);
             return Center(
               child: Text("An error occurred. Please restart the app"),
             );
@@ -442,7 +430,6 @@ class _HomepageState extends State<Homepage> {
       rows.addAll(dataRows);
 
       final fileName = await getStorageFilePath();
-      print('Filename: $fileName.csv');
       File csvFile = File("$fileName.csv");
       String csv = const ListToCsvConverter().convert(rows);
       await csvFile.writeAsString(csv);

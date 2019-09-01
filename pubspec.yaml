@@ -25,7 +25,7 @@ dependencies:
   cupertino_icons: ^0.1.2
   sqflite: ^1.1.6
   path_provider: ^1.1.0
-  dbcrypt: ^1.0.0
+  crypto: ^2.1.2
   autocomplete_textfield: ^1.7.3
   intl: ^0.15.8
   localstorage: ^2.0.0

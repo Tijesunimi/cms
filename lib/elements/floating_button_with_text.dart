@@ -25,7 +25,7 @@ class FloatingActionButtonWithText extends StatelessWidget {
             children: <Widget>[
               Icon(this.icon, color: Colors.white),
               Padding(
-                padding: EdgeInsets.only(left: 10.0),
+                padding: EdgeInsets.all(0.0),
                 child: Text(this.text, style: TextStyle(color: Colors.white)),
               )
             ],
