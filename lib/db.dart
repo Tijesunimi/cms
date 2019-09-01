@@ -73,8 +73,8 @@ class DatabaseHelper {
       ''');
 
     //Seed db
-    var defaultUser = AuthUser('admin');
-    defaultUser.password = '@dmin011';
+    var defaultUser = AuthUser('Amesin PK');
+    defaultUser.password = '08077907877';
     await db.insert(authTable, defaultUser.toJson());
   }
 

@@ -65,6 +65,8 @@ class CMS extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => ContainerFilter(
               previousFilter: previousFilter,
             ));
+          default:
+            return MaterialPageRoute(builder: (_) => LoginPage());
         }
       },
       home: isAuthenticated ? Homepage() : LoginPage(),

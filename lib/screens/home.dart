@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:localstorage/localstorage.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:csv/csv.dart';
+import 'package:pdf/pdf.dart';
 
 import 'package:cms/models/container.dart';
 import 'package:cms/models/container_filter.dart';
 
 import 'package:cms/services/container.dart';
+import 'package:cms/services/permission.dart';
 
 import 'package:cms/routes.dart';
 import 'package:cms/helpers/alert_helper.dart';
@@ -85,8 +90,7 @@ class _HomepageState extends State<Homepage> {
                   deleteSelectedContainers(context);
                   break;
                 case Option.CSV:
-                  break;
-                case Option.PDF:
+                  exportReportToCSV(context);
                   break;
               }
             },
@@ -99,10 +103,6 @@ class _HomepageState extends State<Homepage> {
                     value: Option.CSV,
                     child: Text('Export to CSV'),
                   ),
-                  PopupMenuItem<Option>(
-                    value: Option.CSV,
-                    child: Text('Export to PDF'),
-                  )
                 ],
           )
         ],
@@ -371,15 +371,6 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  void _sort<T>(Comparable<T> getField(ShippingContainer d), int columnIndex,
-      bool ascending) {
-    //_dessertsDataSource._sort<T>(getField, ascending);
-    setState(() {
-      _sortColumnIndex = columnIndex;
-      _sortAscending = ascending;
-    });
-  }
-
   viewContainer(ShippingContainer container) async {
     var result = await Navigator.of(context).pushNamed(Routes.CONTAINER_DETAIL,
         arguments: {
@@ -407,6 +398,59 @@ class _HomepageState extends State<Homepage> {
               context, "An error occurred. Please try again");
         }
       }
+    }
+  }
+
+  Future<String> getStorageFilePath() async {
+    final dirPath = (await getExternalStorageDirectory()).path;
+    return "$dirPath/ContainerReport_${DateTime.now().toIso8601String().replaceAll(':', '')}";
+  }
+
+  exportReportToCSV(BuildContext context) async {
+    var permissionService = PermissionService();
+
+    if (await permissionService.hasStorageWriteAccess()) {
+      final dateFormatter = new DateFormat('yyyy-MM-dd');
+      var rows = new List<List<dynamic>>();
+      rows.add(<dynamic>[
+        "Container Number",
+        "Shipping Line",
+        "Produce",
+        "Size",
+        "Destination",
+        "Exporter",
+        "Importer",
+        "Date of Shipment",
+        "Shipment Port",
+        "Date of Fumigation",
+        "Date of Departure"
+      ]);
+      var dataRows = containerList.map((container) =>
+      <dynamic>[
+        container.containerNumber ?? "",
+        container.shippingLine ?? "",
+        container.produce ?? "",
+        container.size ?? "",
+        container.destination ?? "",
+        container.exporter ?? "",
+        container.importer ?? "",
+        container.dateOfShipment == null ? "" : dateFormatter.format(container.dateOfShipment),
+        container.shipmentPort ?? "",
+        container.dateOfFumigation == null ? "" : dateFormatter.format(container.dateOfFumigation),
+        container.dateOfDeparture == null ? "" : dateFormatter.format(container.dateOfDeparture)
+      ]).toList();
+      rows.addAll(dataRows);
+
+      final fileName = await getStorageFilePath();
+      print('Filename: $fileName.csv');
+      File csvFile = File("$fileName.csv");
+      String csv = const ListToCsvConverter().convert(rows);
+      await csvFile.writeAsString(csv);
+
+      await AlertHelper.showSuccessDialog(context, 'File exported successfully');
+    }
+    else {
+      await AlertHelper.showErrorDialog(context, 'This action requires storage permission');
     }
   }
 
@@ -500,4 +544,4 @@ class ShippingContainerDataSource extends DataTableSource {
   }
 }
 
-enum Option { CSV, PDF, DeleteSelection }
+enum Option { CSV, DeleteSelection }
