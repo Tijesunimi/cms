@@ -30,6 +30,12 @@ class ContainerService {
     return result > 0;
   }
 
+  Future<bool> deleteAllContainers(List<int> ids) async {
+    var db = DatabaseHelper.instance;
+    int result = await db.deleteContainerList(ids);
+    return result > 0;
+  }
+
   Future<List<ShippingContainer>> searchContainers(ShippingContainerFilter filter) async {
     String filterQuery = _getFilterQueryFromFilter(filter);
     var db = DatabaseHelper.instance;

@@ -124,4 +124,11 @@ class DatabaseHelper {
     Database db = await instance.database;
     return await db.delete(containerTable, where: "$containerColumnId = $id");
   }
+
+  Future<int> deleteContainerList(List<int> ids) async {
+    Database db = await instance.database;
+    if (ids.length > 0)
+      return await db.delete(containerTable, where: "$containerColumnId IN (${ids.join(',')})");
+    return 1;
+  }
 }

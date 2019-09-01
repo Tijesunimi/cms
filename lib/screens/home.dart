@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:localstorage/localstorage.dart';
 
 import 'package:cms/models/container.dart';
@@ -23,16 +24,22 @@ class _HomepageState extends State<Homepage> {
   ShippingContainerFilter searchFilter;
   List<ShippingContainer> containerList;
 
-  bool isListSearchResultData;
+  bool shouldRefreshDataFromDb;
+
+  int _rowsPerPage = PaginatedDataTable.defaultRowsPerPage;
+  int _sortColumnIndex;
+  bool _sortAscending = false;
 
   @override
   void initState() {
-    isListSearchResultData = false;
+    shouldRefreshDataFromDb = true;
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Refreshing');
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Container Management System'),
@@ -40,93 +47,110 @@ class _HomepageState extends State<Homepage> {
           IconButton(
             icon: Icon(Icons.search),
             onPressed: () async {
-              final searchResult = await Navigator.of(context).pushNamed(Routes.CONTAINER_FILTER,
-                arguments:{
-                  RouteContainerFilterArguments.SHIPPING_CONTAINER_FILTER: searchFilter
-                }
-              );
+              final searchResult = await Navigator.of(context)
+                  .pushNamed(Routes.CONTAINER_FILTER, arguments: {
+                RouteContainerFilterArguments.SHIPPING_CONTAINER_FILTER:
+                    searchFilter
+              });
 
               if (searchResult != null) {
                 var searchResultMap = searchResult as Map<String, dynamic>;
-                setState(() {
-                  isListSearchResultData = true;
-                  this.searchFilter = searchResultMap['filter'];
-                  this.containerList = searchResultMap['result'];
-                });
+                if (searchResultMap['fliter'] == 'cleared') {
+                  setState(() {
+                    searchFilter = null;
+                    shouldRefreshDataFromDb = true;
+                  });
+                }
+                else {
+                  setState(() {
+                    this.searchFilter = searchResultMap['filter'];
+                    this.containerList = searchResultMap['result'];
+                  });
+                }
               }
             },
           ),
           IconButton(
-            icon: Icon(Icons.sort),
+            icon: Icon(Icons.refresh),
             onPressed: () {
-
+              setState(() {
+                shouldRefreshDataFromDb = true;
+              });
             },
           ),
-          PopupMenuButton<ExportOption>(
-            onSelected: (ExportOption option) {
+          PopupMenuButton<Option>(
+            onSelected: (Option option) {
               switch (option) {
-                case ExportOption.CSV:
+                case Option.DeleteSelection:
+                  deleteSelectedContainers(context);
                   break;
-                case ExportOption.PDF:
+                case Option.CSV:
+                  break;
+                case Option.PDF:
                   break;
               }
             },
-            itemBuilder: (context) => <PopupMenuEntry<ExportOption>> [
-              PopupMenuItem<ExportOption>(
-                value: ExportOption.CSV,
-                child: Text('Export to CSV'),
-              ),
-              PopupMenuItem<ExportOption>(
-                value: ExportOption.CSV,
-                child: Text('Export to PDF'),
-              )
-            ],
+            itemBuilder: (context) => <PopupMenuEntry<Option>>[
+                  PopupMenuItem<Option>(
+                    value: Option.DeleteSelection,
+                    child: Text('Delete Selected Items'),
+                  ),
+                  PopupMenuItem<Option>(
+                    value: Option.CSV,
+                    child: Text('Export to CSV'),
+                  ),
+                  PopupMenuItem<Option>(
+                    value: Option.CSV,
+                    child: Text('Export to PDF'),
+                  )
+                ],
           )
         ],
       ),
       floatingActionButton: FloatingActionButtonWithText(
         text: 'Add',
         icon: Icons.add,
-        onPressed: () {
-          Navigator.of(context).pushNamed(Routes.CONTAINER_FORM);
+        onPressed: () async {
+          var container =
+              await Navigator.of(context).pushNamed(Routes.CONTAINER_FORM);
+          if (container != null)
+            setState(() {
+              shouldRefreshDataFromDb = true;
+            });
         }
       ),
-      body: FutureBuilder<List<ShippingContainer>>(
-        future: fetchContainerData(),
+      body: FutureBuilder(
+        future: Future.wait([
+          localStorage.ready,
+          fetchContainerData()
+        ]),
         builder: (context, snapshot) {
+          debugPrint('Entered future builder');
           if (snapshot.hasData) {
-            if (snapshot.data.length > 0) {
-              //Store items to be used for auto complete and search in local storage
-              if (!isListSearchResultData) {
-                debugPrint('Entered auto complete');
-                var shippingLineAutoCompleteItems = localStorage.getItem(
-                    'shippingLine') != null ? List<String>.from(
-                    localStorage.getItem('shippingLine')) : List<String>();
-                var exporterAutoCompleteItems = localStorage.getItem(
-                    'exporter') != null ? List<String>.from(
-                    localStorage.getItem('exporter')) : List<String>();
-                var importerAutoCompleteItems = localStorage.getItem(
-                    'importer') != null ? List<String>.from(
-                    localStorage.getItem('importer')) : List<String>();
-                var sizeAutoCompleteItems = localStorage.getItem('size') != null
-                    ? List<String>.from(localStorage.getItem('size'))
-                    : List<String>();
-                var produceAutoCompleteItems = localStorage.getItem(
-                    'produce') != null ? List<String>.from(
-                    localStorage.getItem('produce')) : List<String>();
-                var shipmentPortAutoCompleteItems = localStorage.getItem(
-                    'shipmentPort') != null ? List<String>.from(
-                    localStorage.getItem('shipmentPort')) : List<String>();
-                var destinationAutoCompleteItems = localStorage.getItem(
-                    'destination') != null ? List<String>.from(
-                    localStorage.getItem('destination')) : List<String>();
+            print(snapshot.data);
+            var snapshotContainers = snapshot.data[1];
+            if (snapshotContainers.length > 0) {
+              debugPrint("Entered future result");
 
-                snapshot.data.forEach((container) {
+              //Store items to be used for auto complete and search in local storage
+              if (shouldRefreshDataFromDb) {
+                debugPrint('Entered auto complete');
+                var shippingLineAutoCompleteItems = List<String>();
+                var exporterAutoCompleteItems = List<String>();
+                var importerAutoCompleteItems = List<String>();
+                var sizeAutoCompleteItems = List<String>();
+                var produceAutoCompleteItems = List<String>();
+                var shipmentPortAutoCompleteItems = List<String>();
+                var destinationAutoCompleteItems = List<String>();
+
+                snapshotContainers.forEach((container) {
+                  print(container.shippingLine);
                   //Sync autocomplete items
                   if (container.shippingLine.isNotEmpty &&
-                      !shippingLineAutoCompleteItems.contains(
-                          container.shippingLine))
+                      !shippingLineAutoCompleteItems
+                          .contains(container.shippingLine))
                     shippingLineAutoCompleteItems.add(container.shippingLine);
+                  print(shippingLineAutoCompleteItems);
 
                   if (container.exporter.isNotEmpty &&
                       !exporterAutoCompleteItems.contains(container.exporter))
@@ -136,8 +160,9 @@ class _HomepageState extends State<Homepage> {
                       !importerAutoCompleteItems.contains(container.importer))
                     importerAutoCompleteItems.add(container.importer);
 
-                  if (container.size != null && !sizeAutoCompleteItems.contains(
-                      container.size.toString()))
+                  if (container.size != null &&
+                      !sizeAutoCompleteItems
+                          .contains(container.size.toString()))
                     sizeAutoCompleteItems.add(container.size.toString());
 
                   if (container.produce.isNotEmpty &&
@@ -145,17 +170,18 @@ class _HomepageState extends State<Homepage> {
                     produceAutoCompleteItems.add(container.produce);
 
                   if (container.shipmentPort.isNotEmpty &&
-                      !shipmentPortAutoCompleteItems.contains(
-                          container.shipmentPort))
+                      !shipmentPortAutoCompleteItems
+                          .contains(container.shipmentPort))
                     shipmentPortAutoCompleteItems.add(container.shipmentPort);
 
                   if (container.destination.isNotEmpty &&
-                      !destinationAutoCompleteItems.contains(
-                          container.destination))
+                      !destinationAutoCompleteItems
+                          .contains(container.destination))
                     destinationAutoCompleteItems.add(container.destination);
                 });
 
                 //Update localStorage
+                print(shippingLineAutoCompleteItems);
                 localStorage.setItem(
                     'shippingLine', shippingLineAutoCompleteItems);
                 localStorage.setItem('exporter', exporterAutoCompleteItems);
@@ -167,43 +193,167 @@ class _HomepageState extends State<Homepage> {
                 localStorage.setItem(
                     'destination', destinationAutoCompleteItems);
 
-                localStorage.deleteItem('searchFilter'); //Remove existing search filter
+                localStorage
+                    .deleteItem('searchFilter'); //Remove existing search filter
+
+                shouldRefreshDataFromDb = false; //Reset should refresh from db
               }
 
-              return ListView.builder(
-                itemCount: snapshot.data.length,
-                itemBuilder: (context, index) {
-                  final container = snapshot.data[index];
-                  return ListTile(
-                    title: Text("${container.containerNumber.toString()} ${container.produce.isNotEmpty ? '- ' + container.produce : ''}"),
-                    subtitle: Text(container.shippingLine),
-                    leading: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        (index + 1).toString() + ".",
-                        style: TextStyle(
-                          fontSize: 16.0,
+              final containerDataSource = ShippingContainerDataSource(
+                  data: snapshotContainers,
+                  context: context,
+                  onItemPress: (container) => viewContainer(container));
+
+              return Scrollbar(
+                child:
+                    ListView(padding: EdgeInsets.all(0.0), children: <Widget>[
+                  PaginatedDataTable(
+                      header:
+                          Text("Container List", textAlign: TextAlign.center),
+                      rowsPerPage: _rowsPerPage,
+                      onRowsPerPageChanged: (int value) {
+                        setState(() {
+                          _rowsPerPage = value;
+                        });
+                      },
+                      onSelectAll: containerDataSource._selectAll,
+                      sortColumnIndex: _sortColumnIndex,
+                      sortAscending: _sortAscending,
+                      columns: [
+                        DataColumn(
+                          label: Text("S/NO"),
+                          numeric: true,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    trailing: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () => deleteContainer(context, container.id)
-                    ),
-                    onTap: () {
-                      Navigator.of(context).pushNamed(
-                          Routes.CONTAINER_DETAIL,
-                          arguments: {
-                            RouteContainerDetailArguments.SHIPPING_CONTAINER: container
-                          }
-                      );
-                    },
-                  );
-                },
+                        DataColumn(
+                          label: Text("CONTAINER NO"),
+                          onSort: (int columnIndex, bool ascending) {
+                            debugPrint("Is Ascending: $ascending");
+                            containerDataSource._sort<String>(
+                                (ShippingContainer d) => d.containerNumber,
+                                ascending);
+                            setState(() {
+                              _sortColumnIndex = columnIndex;
+                              _sortAscending = ascending;
+                            });
+                          },
+                        ),
+                        DataColumn(
+                            label: Text("SHIPPING LINE"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.shippingLine,
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("PRODUCE"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.produce,
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("SIZE"),
+                            numeric: true,
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.size.toString(),
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("DESTINATION"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.destination,
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("EXPORTER"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.exporter,
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("IMPORTER"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.importer,
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("DATE OF SHIPMENT"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<DateTime>(
+                                  (ShippingContainer d) => d.dateOfShipment ?? new DateTime(1900, 1, 1),
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("SHIPMENT PORT"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<String>(
+                                  (ShippingContainer d) => d.shipmentPort,
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("DATE OF FUMIGATION"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<DateTime>(
+                                  (ShippingContainer d) => d.dateOfFumigation ?? new DateTime(1900, 1, 1),
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(
+                            label: Text("DATE OF DEPARTURE"),
+                            onSort: (int columnIndex, bool ascending) {
+                              containerDataSource._sort<DateTime>(
+                                  (ShippingContainer d) => d.dateOfDeparture ?? new DateTime(1900, 1, 1),
+                                  ascending);
+                              setState(() {
+                                _sortColumnIndex = columnIndex;
+                                _sortAscending = ascending;
+                              });
+                            }),
+                        DataColumn(label: Text("")),
+                      ],
+                      source: containerDataSource),
+                ]),
               );
-            }
-            else {
+            } else {
               return Center(
                 child: Text("No containers"),
               );
@@ -221,33 +371,133 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  deleteContainer(BuildContext context, int id) async {
-    if (await AlertHelper.showConfirmDialog(context, "Are you sure you want to delete this container")) {
-      if (await containerService.deleteContainer(id)) {
-        await AlertHelper.showSuccessDialog(
-            context, "Container deleted successfully");
-        setState(() {}); //Force refresh
-      }
-      else {
-        await AlertHelper.showErrorDialog(
-            context, "An error occurred. Please try again");
+  void _sort<T>(Comparable<T> getField(ShippingContainer d), int columnIndex,
+      bool ascending) {
+    //_dessertsDataSource._sort<T>(getField, ascending);
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _sortAscending = ascending;
+    });
+  }
+
+  viewContainer(ShippingContainer container) async {
+    var result = await Navigator.of(context).pushNamed(Routes.CONTAINER_DETAIL,
+        arguments: {
+          RouteContainerDetailArguments.SHIPPING_CONTAINER: container
+        });
+    if (result != null && result == true)
+      setState(() {
+        shouldRefreshDataFromDb = true;
+      });
+  }
+
+  deleteSelectedContainers(BuildContext context) async {
+    var selectedContainers = containerList.where((container) => container.selected);
+    if (selectedContainers.length > 0) {
+      if (await AlertHelper.showConfirmDialog(
+          context, "Are you sure you want to delete the selected containers")) {
+        if (await containerService.deleteAllContainers(selectedContainers.map((c) => c.id).toList())) {
+          await AlertHelper.showSuccessDialog(
+              context, "Containers deleted successfully");
+          setState(() {
+            shouldRefreshDataFromDb = true;
+          }); //Force refresh
+        } else {
+          await AlertHelper.showErrorDialog(
+              context, "An error occurred. Please try again");
+        }
       }
     }
   }
 
   Future<List<ShippingContainer>> fetchContainerData() async {
-    await localStorage.ready;
-    if (isListSearchResultData) {
-      return containerList;
-    }
-    else {
+    if (shouldRefreshDataFromDb) {
       containerList = await containerService.getContainers();
-      return containerList;
     }
+    return containerList;
   }
 }
 
-enum ExportOption {
-  CSV,
-  PDF
+class ShippingContainerDataSource extends DataTableSource {
+  final List<ShippingContainer> data;
+  final BuildContext context;
+  final Function onItemPress;
+
+  ShippingContainerDataSource({this.data, this.context, this.onItemPress});
+
+  void _sort<T>(Comparable<T> getField(ShippingContainer d), bool ascending) {
+    data.sort((ShippingContainer a, ShippingContainer b) {
+      if (ascending) {
+        final ShippingContainer c = a;
+        a = b;
+        b = c;
+      }
+      final Comparable<T> aValue = getField(a);
+      final Comparable<T> bValue = getField(b);
+      return Comparable.compare(aValue, bValue);
+    });
+    notifyListeners();
+  }
+
+  int _selectedCount = 0;
+
+  @override
+  DataRow getRow(int index) {
+    final dateFormatter = new DateFormat('yyyy-MM-dd');
+
+    assert(index >= 0);
+    if (index >= data.length) return null;
+    final ShippingContainer container = data[index];
+    return DataRow.byIndex(
+      index: index,
+      selected: container.selected,
+      onSelectChanged: (bool value) {
+        if (container.selected != value) {
+          _selectedCount += value ? 1 : -1;
+          assert(_selectedCount >= 0);
+          container.selected = value;
+          notifyListeners();
+        }
+      },
+      cells: <DataCell>[
+        DataCell(Text('${(index + 1).toString()}')),
+        DataCell(Text('${container.containerNumber}')),
+        DataCell(Text('${container.shippingLine}')),
+        DataCell(Text('${container.produce}')),
+        DataCell(
+            Text('${container.size != null ? container.size.toString() : ""}')),
+        DataCell(Text('${container.destination}')),
+        DataCell(Text('${container.exporter}')),
+        DataCell(Text('${container.importer}')),
+        DataCell(Text(
+            '${container.dateOfShipment != null ? dateFormatter.format(container.dateOfShipment) : ""}')),
+        DataCell(Text('${container.shipmentPort}')),
+        DataCell(Text(
+            '${container.dateOfFumigation != null ? dateFormatter.format(container.dateOfFumigation) : ""}')),
+        DataCell(Text(
+            '${container.dateOfDeparture != null ? dateFormatter.format(container.dateOfDeparture) : ""}')),
+        DataCell(IconButton(
+            icon: Icon(Icons.keyboard_arrow_right),
+            color: Theme.of(context).primaryColor,
+            onPressed: () => onItemPress(container))),
+      ],
+    );
+  }
+
+  @override
+  int get rowCount => data.length;
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get selectedRowCount => _selectedCount;
+
+  void _selectAll(bool checked) {
+    for (ShippingContainer container in data) container.selected = checked;
+    _selectedCount = checked ? data.length : 0;
+    notifyListeners();
+  }
 }
+
+enum Option { CSV, PDF, DeleteSelection }

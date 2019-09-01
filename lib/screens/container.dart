@@ -133,7 +133,7 @@ class _ContainerDetailState extends State<ContainerDetail> {
       if (await containerService.deleteContainer(shippingContainer.id)) {
         await AlertHelper.showSuccessDialog(
             context, "Container deleted successfully");
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
       else {
         await AlertHelper.showErrorDialog(

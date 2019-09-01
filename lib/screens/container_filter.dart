@@ -372,18 +372,38 @@ class _ContainerFilterState extends State<ContainerFilter> {
 
     params.add(Padding(
       padding: EdgeInsets.only(top: 10.0),
-      child: PrimaryButton(
-        isProcessing: isProcessing,
-        label: 'Search',
-        onPressed: searchContainers,
-      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          PrimaryButton(
+            isProcessing: isProcessing,
+            label: 'Search',
+            onPressed: searchContainers,
+          ),
+          Padding(
+            padding: EdgeInsets.all(5.0),
+          ),
+          PrimaryButton(
+            isProcessing: false,
+            label: 'Clear',
+            onPressed: clearFilter,
+          )
+        ],
+      )
     ));
 
     return params;
   }
 
+  clearFilter() async {
+    Navigator.of(context).pop({
+      'filter': 'cleared',
+      'result': null
+    });
+  }
+
   searchContainers() async {
-    debugPrint(shippingLine);
     var filter = ShippingContainerFilter(
       containerNumber: containerNumberController.text,
       shippingLine: shippingLine,

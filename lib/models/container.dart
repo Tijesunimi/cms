@@ -14,6 +14,8 @@ class ShippingContainer {
   final DateTime dateOfFumigation;
   final DateTime dateOfDeparture;
 
+  bool selected = false;
+
   ShippingContainer({ this.id,
     this.containerNumber,
     this.shippingLine,
